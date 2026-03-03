@@ -780,6 +780,24 @@ export default function HomePage() {
 
   // Chạy một lần khi mount
   useEffect(() => { fetchPrices(); }, [fetchPrices]);
+  // Realtime — tự cập nhật khi có thay đổi trong database
+useEffect(() => {
+  const channel = supabase
+    .channel("db-price-changes")
+    .on(
+      "postgres_changes",
+      { event: "UPDATE", schema: "public", table: "prices" },
+      () => fetchPrices()
+    )
+    .on(
+      "postgres_changes",
+      { event: "UPDATE", schema: "public", table: "world_market" },
+      () => fetchPrices()
+    )
+    .subscribe();
+
+  return () => { supabase.removeChannel(channel); };
+}, [fetchPrices]);
 
   // Nút "Cập nhật giá" — bật skeleton lại, fetch mới
   const handleRefresh = async () => {
