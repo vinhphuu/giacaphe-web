@@ -1,54 +1,39 @@
-// ─────────────────────────────────────────────
-// DATABASE TYPES — khớp 1:1 với schema Supabase
-// ─────────────────────────────────────────────
-
-/** Hàng trong bảng `prices` */
 export interface PriceRow {
   id:           number;
-  region:       string;          // 'Đắk Lắk' | 'Gia Lai' | ...
-  price:        number;          // đ/kg, VD: 96000
-  change_value: number;          // chênh lệch so với hôm qua, VD: -200
-  updated_at:   string;          // ISO 8601 timestamp
+  province:     string;
+  region:       string;
+  areas:        string | null;
+  price:        number;
+  change:       number | null;
+  change_value: number | null;
+  updated_at:   string | null;
   type:         "coffee" | "pepper";
-  week_high?:   number;
-  week_low?:    number;
+  week_high:    number | null;
+  week_low:     number | null;
 }
 
-/** Hàng trong bảng `price_history` — dùng cho biểu đồ */
 export interface PriceHistoryRow {
-  id:         number;
-  region:     string;
-  price:      number;
-  recorded_at: string;           // ISO 8601
-  type:       "coffee" | "pepper";
+  id:          number;
+  province:    string;
+  price:       number;
+  recorded_at: string;
+  type:        "coffee" | "pepper";
 }
-
-// ─────────────────────────────────────────────
-// VIEW TYPES — dành cho UI components
-// ─────────────────────────────────────────────
 
 export interface PriceCardData {
+  province:    string;
   region:      string;
   price:       number;
   changeValue: number;
-  updatedAt:   string;           // đã format, VD: "08:30, 03/03"
+  updatedAt:   string;
   weekHigh:    number;
   weekLow:     number;
 }
 
 export interface ChartDataPoint {
-  date:  string;                 // "T2", "T3", ...
+  date:  string;
   price: number;
 }
-
-export interface RegionGroup {
-  name:   string;
-  rows:   PriceCardData[];
-}
-
-// ─────────────────────────────────────────────
-// API RESPONSE TYPES
-// ─────────────────────────────────────────────
 
 export interface FetchResult<T> {
   data:  T | null;
