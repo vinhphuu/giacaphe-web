@@ -115,7 +115,7 @@ export async function GET(request: NextRequest) {
     upserted:  dbResult.upserted,
     skipped:   dbResult.skipped,
     warnings:  dbResult.errors,  // non-fatal warnings
-    regions:   scrapeResult.data.map((d) => d.province),    
+    province:   scrapeResult.data.map((d) => d.province),    
     duration:  `${duration}ms`,
     timestamp: new Date().toISOString(),
   });
