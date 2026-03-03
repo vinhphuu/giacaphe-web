@@ -200,7 +200,7 @@ export default async function HomePage() {
         <div className="max-w-2xl mx-auto px-4 text-center text-xs text-slate-400 space-y-1">
           <p className="flex items-center justify-center gap-1.5">
             <Coffee className="w-3 h-3 text-amber-500" />
-            <span className="font-semibold text-slate-600 dark:text-slate-300">GiaCaPhe.vn</span>
+            <span className="font-semibold text-slate-600 dark:text-slate-300">GiaCaPheHomNay.vn</span>
           </p>
           <p>Dữ liệu mang tính tham khảo. Cập nhật mỗi buổi sáng.</p>
         </div>
