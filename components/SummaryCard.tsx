@@ -50,21 +50,30 @@ export function SummaryCard({ label, value, sublabel, variant }: SummaryCardProp
   const Icon = s.Icon;
 
   return (
-    <div className={`rounded-2xl border p-4 ${s.bg} ${s.border}`}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+    <div className={`rounded-2xl border p-2.5 sm:p-4 ${s.bg} ${s.border}`}>
+      <div className="flex items-start justify-between gap-1.5 sm:gap-3">
+        {/* Text — co lại trên mobile, không bị tràn */}
+        <div className="min-w-0 flex-1">
+          <p className="text-[9px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-0.5 sm:mb-1 truncate">
             {label}
           </p>
-          <p className={`text-2xl font-bold tabular-nums leading-none ${s.valueColor}`}>
+          <p className={`text-base sm:text-2xl font-bold tabular-nums leading-none ${s.valueColor}`}>
             {formatVND(value)}
           </p>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+          <p className="text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 mt-0.5 sm:mt-1">
             {sublabel ?? "đ/kg"}
           </p>
         </div>
-        <div className={`shrink-0 w-10 h-10 rounded-xl flex items-center justify-center ${s.iconBg}`}>
-          <Icon className={`w-5 h-5 ${s.iconColor}`} />
+
+        {/* Icon — nhỏ trên mobile, to hơn trên sm+ */}
+        <div className={`
+          shrink-0
+          w-7 h-7 rounded-lg
+          sm:w-10 sm:h-10 sm:rounded-xl
+          flex items-center justify-center
+          ${s.iconBg}
+        `}>
+          <Icon className={`w-3.5 h-3.5 sm:w-5 sm:h-5 ${s.iconColor}`} />
         </div>
       </div>
     </div>
