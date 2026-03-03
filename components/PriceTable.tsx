@@ -65,7 +65,7 @@ function PriceRow({
       <div className="flex items-center gap-2 min-w-0">
         <MapPin className="w-3.5 h-3.5 text-amber-500 shrink-0" />
         <span className="text-sm font-medium text-slate-700 dark:text-slate-300 truncate">
-          {row.region}
+          {row.province}
         </span>
       </div>
 
@@ -115,7 +115,7 @@ export function PriceTable({ title, rows, emoji = "☕" }: PriceTableProps) {
       {/* Rows */}
       <div>
         {rows.map((row, i) => (
-          <PriceRow key={row.region} row={row} isLast={i === rows.length - 1} />
+          <PriceRow key={row.province} row={row} isLast={i === rows.length - 1} />
         ))}
       </div>
     </div>
