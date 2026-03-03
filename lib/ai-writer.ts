@@ -63,7 +63,7 @@ Trả về JSON (không có markdown bên ngoài):
 async function callGeminiAPI(prompt: string) {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) throw new Error("Thiếu GEMINI_API_KEY");
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
   const response = await fetch(url, {
     method:"POST", headers:{"Content-Type":"application/json"}, cache:"no-store",
     body: JSON.stringify({
