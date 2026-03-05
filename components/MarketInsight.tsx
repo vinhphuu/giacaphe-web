@@ -22,17 +22,26 @@ async function generateInsight(
   const top=prices.reduce((m,p)=>p.price>m.price?p:m,prices[0]??{province:"",price:0,change_value:0});
   const london=world.find(w=>w.exchange==="London");
   const ny=world.find(w=>w.exchange==="New York");
+  const topPrice=top.price.toLocaleString("vi-VN");
   const ctx=[
-    `Gia noi dia TB thay doi: ${avgChange>0?"+":""}${avgChange}d`,
-    `Cao nhat: ${top.province} ${top.price}d/kg`,
-    london?`London ${london.contract}: ${london.price} USD/T (${london.change_pt>0?"+":""}${london.change_pt})`:"",
+    `Giá nội địa TB thay đổi: ${avgChange>0?"+":""}${avgChange.toLocaleString("vi-VN")}đ`,
+    `Cao nhất: ${top.province} ${topPrice}đ/kg`,
+    london?`London ${london.contract}: ${london.price} USD/tấn (${london.change_pt>0?"+":""}${london.change_pt})`:"",
     ny?`New York ${ny.contract}: ${ny.price} Cent/lb (${ny.change_pt>0?"+":""}${ny.change_pt})`:"",
   ].filter(Boolean).join(". ");
   try{
     const res=await fetch("https://api.groq.com/openai/v1/chat/completions",{
       method:"POST",
       headers:{"Content-Type":"application/json","Authorization":`Bearer ${apiKey}`},
-      body:JSON.stringify({model:"llama-3.3-70b-versatile",messages:[{role:"user",content:`Ban la chuyen gia thi truong ca phe. Du lieu: ${ctx}. Viet 1 cau nhan dinh duoi 60 chu bang tieng Viet, ket thuc bang loi khuyen cho nguoi trong. Khong dung markdown.`}],temperature:0.6,max_tokens:120}),
+      body:JSON.stringify({
+        model:"llama-3.3-70b-versatile",
+        messages:[
+          {role:"system",content:"Bạn là chuyên gia thị trường cà phê Việt Nam. Luôn viết tiếng Việt đầy đủ dấu, tự nhiên, chuyên nghiệp."},
+          {role:"user",content:`Dữ liệu thị trường: ${ctx}. Hãy viết đúng 1 câu nhận định ngắn dưới 60 chữ bằng tiếng Việt có dấu đầy đủ, kết thúc bằng lời khuyên cụ thể cho người trồng cà phê. Không dùng markdown, không giải thích thêm.`}
+        ],
+        temperature:0.5,
+        max_tokens:150
+      }),
       next:{revalidate:3600},
     } as RequestInit);
     if(!res.ok) return "";
@@ -49,12 +58,12 @@ export default async function MarketInsight(){
   const avg=snapshot.prices.length?snapshot.prices.reduce((s,p)=>s+p.change_value,0)/snapshot.prices.length:0;
   const up=avg>0,down=avg<0;
   const c=up
-    ?{border:"border-emerald-500/30",bg:"bg-emerald-500/5",dot:"bg-emerald-400",text:"text-emerald-300",label:"text-emerald-400",icon:"📈"}
+    ?{border:"border-emerald-500/30",bg:"bg-emerald-500/5",dot:"bg-emerald-400",text:"text-emerald-200",label:"text-emerald-400",icon:"📈"}
     :down
-    ?{border:"border-rose-500/30",bg:"bg-rose-500/5",dot:"bg-rose-400",text:"text-rose-300",label:"text-rose-400",icon:"📉"}
+    ?{border:"border-rose-500/30",bg:"bg-rose-500/5",dot:"bg-rose-400",text:"text-rose-200",label:"text-rose-400",icon:"📉"}
     :{border:"border-slate-600/40",bg:"bg-slate-800/40",dot:"bg-slate-400",text:"text-slate-300",label:"text-slate-400",icon:"➡️"};
   return(
-    <div className={`mx-4 mb-4 rounded-xl border ${c.border} ${c.bg} px-4 py-3`}>
+    <div className={`w-full rounded-xl border ${c.border} ${c.bg} px-4 py-3 mt-3 mb-5`}>
       <div className="flex items-start gap-3">
         <div className="shrink-0 mt-0.5 flex items-center gap-1.5">
           <span className="text-base leading-none">{c.icon}</span>
@@ -64,7 +73,9 @@ export default async function MarketInsight(){
           </span>
         </div>
         <div className="flex-1 min-w-0">
-          <span className={`text-[10px] font-bold uppercase tracking-widest ${c.label} block mb-1`}>AI - Nhan dinh thi truong hom nay</span>
+          <span className={`text-[10px] font-bold uppercase tracking-widest ${c.label} block mb-1`}>
+            AI · Nhận định thị trường hôm nay
+          </span>
           <p className={`text-sm leading-relaxed ${c.text}`}>{insight}</p>
         </div>
       </div>
