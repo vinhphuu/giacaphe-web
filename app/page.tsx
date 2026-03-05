@@ -1,3 +1,6 @@
+import { buildHomeMetadata, PriceSchemaScript } from "@/lib/seo";
+import MarketInsight from "@/components/MarketInsight";
+import WorldPrices from "@/components/WorldPrices";
 import LatestNews from "@/components/LatestNews";
 /**
  * app/page.tsx
@@ -103,6 +106,7 @@ export default async function HomePage() {
           <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
             Giá cà phê hôm nay
           </h1>
+      <MarketInsight />
           <p className="text-sm text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-1.5">
             <Globe className="w-3.5 h-3.5" />
             Tổng hợp từ các đầu mối thu mua Tây Nguyên
@@ -194,8 +198,9 @@ export default async function HomePage() {
           </div>
         )}
 
-            <LatestNews />
-          <LatestNews />
+                    <WorldPrices />
+      <LatestNews />
+          <PriceSchemaScript />
     </main>
 
       {/* ── FOOTER ── */}
