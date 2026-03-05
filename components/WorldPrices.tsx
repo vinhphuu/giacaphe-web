@@ -115,7 +115,6 @@ export default async function WorldPrices(){
           <ExchangeTable exchange="London" unit="USD/Tan" prices={london} isEmpty={!hasData}/>
           <ExchangeTable exchange="New York" unit="Cent/lb" prices={newYork} isEmpty={!hasData}/>
         </div>
-        <p className="mt-3 text-[11px] text-slate-600 text-center">Nguon: giacaphe.com · Du lieu mang tinh tham khao</p>
       </div>
     </section>
   );
