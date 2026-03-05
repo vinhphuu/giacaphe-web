@@ -1,100 +1,170 @@
-import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-import Link from "next/link";
-import { createClient } from "@supabase/supabase-js";
-import ArticleContent from "@/components/ArticleContent";
+import { notFound }        from "next/navigation";
+import Link                from "next/link";
+import type { Metadata }   from "next";
+import { createClient }    from "@supabase/supabase-js";
 
 export const revalidate = 3600;
 
-interface Article { id:number; title:string; slug:string; content:string; meta_description:string|null; excerpt:string|null; keywords:string[]|null; word_count:number|null; created_at:string; }
-
-function getSB() {
-  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+async function getArticle(slug: string) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) return null;
+  const sb = createClient(url, key, {
+    global: { fetch: (input, init) => fetch(input, { ...init, next: { revalidate: 3600 } } as RequestInit) },
+  });
+  const { data } = await sb.from("articles").select("*").eq("slug", slug).eq("status","published").single();
+  return data;
 }
 
-async function getArticle(slug: string): Promise<Article|null> {
-  const {data,error} = await getSB().from("articles").select("*").eq("slug",slug).eq("status","published").single();
-  if (error||!data) return null;
-  return data as Article;
-}
-
-async function getRelated(excludeSlug: string) {
-  const {data} = await getSB().from("articles").select("title,slug,created_at").eq("status","published").neq("slug",excludeSlug).order("created_at",{ascending:false}).limit(4);
-  return data??[];
-}
-
-export async function generateMetadata({params}:{params:Promise<{slug:string}>}): Promise<Metadata> {
-  const {slug} = await params;
-  const a = await getArticle(slug);
-  if (!a) return {title:"Không tìm thấy bài viết"};
-  const base = process.env.NEXT_PUBLIC_BASE_URL??"https://giacaphe-web.vercel.app";
+export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const { slug } = await params;
+  const article = await getArticle(slug);
+  if (!article) return { title: "Bài viết không tìm thấy" };
+  const base = process.env.NEXT_PUBLIC_BASE_URL ?? "https://giacaphe-web.vercel.app";
   return {
-    title: a.title, description: a.meta_description??a.excerpt??"", keywords: a.keywords?.join(", "),
-    openGraph:{title:a.title,description:a.meta_description??"",url:`${base}/tin-tuc/${slug}`,type:"article",publishedTime:a.created_at},
-    alternates:{canonical:`${base}/tin-tuc/${slug}`},
+    title:       article.title,
+    description: article.meta_description ?? "",
+    alternates:  { canonical: `${base}/tin-tuc/${slug}` },
+    openGraph: {
+      title:    article.title,
+      description: article.meta_description ?? "",
+      url:      `${base}/tin-tuc/${slug}`,
+      type:     "article",
+      siteName: "GiaCaPhe",
+      locale:   "vi_VN",
+    },
   };
 }
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString("vi-VN",{weekday:"long",day:"2-digit",month:"2-digit",year:"numeric",timeZone:"Asia/Ho_Chi_Minh"});
+function MarkdownRenderer({ content }: { content: string }) {
+  const lines = content.split("\n");
+  const elements: React.ReactNode[] = [];
+  let tableBuffer: string[] = [];
+  let key = 0;
+
+  const flushTable = () => {
+    if (tableBuffer.length < 2) { tableBuffer = []; return; }
+    const rows = tableBuffer
+      .map(r => r.split("|").map(c => c.trim()).filter((_, i, a) => i > 0 && i < a.length - 1))
+      .filter(r => r.some(c => c && !c.match(/^[-:]+$/)));
+    if (!rows.length) { tableBuffer = []; return; }
+    elements.push(
+      <div key={key++} className="overflow-x-auto my-5">
+        <table className="w-full border-collapse text-sm">
+          <thead><tr>{rows[0].map((c,i) => <th key={i} className="px-3 py-2 text-left bg-slate-800 text-slate-300 font-semibold border border-slate-700">{c}</th>)}</tr></thead>
+          <tbody>{rows.slice(1).map((row,ri) => (
+            <tr key={ri} className="border-t border-slate-800 hover:bg-slate-800/40">
+              {row.map((c,ci) => <td key={ci} className="px-3 py-2 border border-slate-800/60 text-slate-300" dangerouslySetInnerHTML={{ __html: c.replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>").replace(/!\[([^\]]*)\]\(([^)]+)\)/g,'<img src="$2" alt="$1" class="rounded-lg my-3 w-full" />') }}/>)}
+            </tr>
+          ))}</tbody>
+        </table>
+      </div>
+    );
+    tableBuffer = [];
+  };
+
+  for (const line of lines) {
+    if (line.startsWith("|")) { tableBuffer.push(line); continue; }
+    if (tableBuffer.length) flushTable();
+    if (line.startsWith("# "))
+      elements.push(<h1 key={key++} className="text-2xl font-bold text-white mt-2 mb-5 leading-snug">{line.slice(2)}</h1>);
+    else if (line.startsWith("## "))
+      elements.push(<h2 key={key++} className="text-lg font-bold text-amber-400 mt-8 mb-3">{line.slice(3)}</h2>);
+    else if (line.startsWith("### "))
+      elements.push(<h3 key={key++} className="text-base font-bold text-slate-200 mt-5 mb-2">{line.slice(4)}</h3>);
+    else if (line.match(/^!\[([^\]]*)\]\(([^)]+)\)/)) {
+      const m = line.match(/^!\[([^\]]*)\]\(([^)]+)\)/);
+      if (m) elements.push(<img key={key++} src={m[2]} alt={m[1]} className="rounded-xl my-5 w-full object-cover max-h-80" />);
+    } else if (line.trim() === "" || line.trim() === "---") {
+      elements.push(<div key={key++} className="my-3" />);
+    } else if (line.trim()) {
+      const html = line
+        .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+        .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" class="rounded-lg my-3 w-full" />')
+        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-amber-400 hover:underline">$1</a>');
+      elements.push(<p key={key++} className="text-slate-300 leading-relaxed my-3" dangerouslySetInnerHTML={{ __html: html }}/>);
+    }
+  }
+  if (tableBuffer.length) flushTable();
+  return <>{elements}</>;
 }
 
-export default async function ArticlePage({params}:{params:Promise<{slug:string}>}) {
-  const {slug} = await params;
-  const [article, related] = await Promise.all([getArticle(slug), getRelated(slug)]);
+export default async function ArticlePage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = await params;
+  const article = await getArticle(slug);
   if (!article) notFound();
+
+  const base = process.env.NEXT_PUBLIC_BASE_URL ?? "https://giacaphe-web.vercel.app";
+  const dateDisplay = new Date(article.created_at).toLocaleDateString("vi-VN", {
+    weekday:"long", day:"2-digit", month:"2-digit", year:"numeric", timeZone:"Asia/Ho_Chi_Minh",
+  });
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type":    "NewsArticle",
+    "headline": article.title,
+    "description": article.meta_description ?? "",
+    "datePublished": article.created_at,
+    "dateModified":  article.updated_at ?? article.created_at,
+    "url":      `${base}/tin-tuc/${slug}`,
+    "author":   { "@type": "Organization", "name": "GiaCaPhe", "url": base },
+    "publisher":{ "@type": "Organization", "name": "GiaCaPhe", "url": base },
+    "inLanguage": "vi",
+    "mainEntityOfPage": { "@type": "WebPage", "@id": `${base}/tin-tuc/${slug}` },
+  };
+
   return (
-    <main className="min-h-screen bg-slate-950">
-      <div className="max-w-4xl mx-auto px-4 py-10">
-        <nav className="flex items-center gap-2 text-xs text-slate-500 mb-8">
-          <Link href="/" className="hover:text-amber-400 transition-colors">Trang chủ</Link>
-          <span>/</span>
-          <Link href="/tin-tuc" className="hover:text-amber-400 transition-colors">Tin tức</Link>
-          <span>/</span>
-          <span className="text-slate-400 truncate max-w-xs">{article.title}</span>
-        </nav>
-        <article>
-          <header className="mb-8">
-            <span className="text-xs font-semibold text-amber-400 bg-amber-400/10 px-3 py-1 rounded-full uppercase tracking-wider">Phân tích thị trường</span>
-            <h1 className="text-2xl sm:text-3xl font-bold text-white leading-tight mb-4 mt-4">{article.title}</h1>
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-slate-400 pb-6 border-b border-slate-800">
-              <span>📅 {formatDate(article.created_at)}</span>
-              {article.word_count && <><span>·</span><span>{article.word_count.toLocaleString()} từ</span></>}
-              <span>·</span>
-              <span className="text-emerald-400">🤖 AI Generated</span>
-            </div>
-            {article.excerpt && <p className="mt-6 text-slate-300 text-lg leading-relaxed border-l-4 border-amber-500 pl-4 italic">{article.excerpt}</p>}
-          </header>
-          <ArticleContent content={article.content} />
-          {article.keywords && article.keywords.length > 0 && (
-            <div className="mt-8 pt-6 border-t border-slate-800">
-              <p className="text-xs text-slate-500 mb-2 uppercase tracking-wider">Từ khoá:</p>
-              <div className="flex flex-wrap gap-2">
-                {article.keywords.map(kw => <span key={kw} className="text-xs text-slate-400 bg-slate-800 px-3 py-1 rounded-full">#{kw}</span>)}
-              </div>
-            </div>
-          )}
-        </article>
-        <script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify({"@context":"https://schema.org","@type":"Article","headline":article.title,"description":article.meta_description,"datePublished":article.created_at,"publisher":{"@type":"Organization","name":"GiaCaPhe.web"}})}} />
-        {related.length > 0 && (
-          <section className="mt-12">
-            <h2 className="text-lg font-bold text-white mb-4">Bài viết liên quan</h2>
-            <div className="space-y-3">
-              {related.map((r:any) => (
-                <Link key={r.slug} href={`/tin-tuc/${r.slug}`} className="group flex items-center justify-between bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 hover:border-amber-500/50 transition-all">
-                  <span className="text-sm text-slate-300 group-hover:text-amber-400 transition-colors line-clamp-1">{r.title}</span>
-                  <span className="text-xs text-slate-500 shrink-0 ml-3">{new Date(r.created_at).toLocaleDateString("vi-VN",{day:"2-digit",month:"2-digit"})}</span>
-                </Link>
+    <>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}/>
+      <main className="min-h-screen bg-slate-950 text-white">
+        <div className="max-w-3xl mx-auto px-4 py-8">
+          {/* Breadcrumb */}
+          <nav className="flex items-center gap-2 text-xs text-slate-500 mb-6">
+            <Link href="/" className="hover:text-amber-400 transition-colors">Trang chủ</Link>
+            <span>/</span>
+            <Link href="/tin-tuc" className="hover:text-amber-400 transition-colors">Tin tức</Link>
+            <span>/</span>
+            <span className="text-slate-400 truncate max-w-xs">{article.title}</span>
+          </nav>
+
+          {/* Meta */}
+          <div className="flex items-center gap-3 mb-6">
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-400/10 px-2.5 py-1 rounded-full uppercase tracking-wider">
+              🤖 AI Generated
+            </span>
+            <span className="text-slate-500 text-xs">{dateDisplay}</span>
+            {article.word_count && (
+              <span className="text-slate-500 text-xs">· {Math.ceil(article.word_count / 200)} phút đọc</span>
+            )}
+          </div>
+
+          {/* Nội dung bài viết */}
+          <article className="mb-12">
+            <MarkdownRenderer content={article.content} />
+          </article>
+
+          {/* Keywords */}
+          {article.keywords?.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-8 pt-6 border-t border-slate-800">
+              {article.keywords.map((k: string) => (
+                <span key={k} className="text-xs px-3 py-1 rounded-full bg-slate-800 text-slate-400">
+                  #{k}
+                </span>
               ))}
             </div>
-          </section>
-        )}
-        <div className="mt-10 flex gap-4">
-          <Link href="/tin-tuc" className="text-sm text-slate-500 hover:text-amber-400 transition-colors">← Tất cả bài viết</Link>
-          <span className="text-slate-700">·</span>
-          <Link href="/" className="text-sm text-slate-500 hover:text-amber-400 transition-colors">Xem bảng giá →</Link>
+          )}
+
+          {/* Back */}
+          <div className="flex items-center gap-4 pt-4 border-t border-slate-800">
+            <Link href="/tin-tuc" className="flex items-center gap-2 text-sm text-amber-400 hover:text-amber-300 transition-colors">
+              ← Tất cả bài viết
+            </Link>
+            <Link href="/" className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-300 transition-colors">
+              Trang chủ
+            </Link>
+          </div>
         </div>
-      </div>
-    </main>
+      </main>
+    </>
   );
 }
