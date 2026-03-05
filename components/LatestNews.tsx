@@ -12,9 +12,9 @@ async function getLatestArticles(): Promise<Article[]> {
       global: { fetch: (input, init) => fetch(input, { ...init, next: { revalidate: 3600 } } as RequestInit) },
     });
     const { data, error } = await sb.from("articles").select("title,slug,meta_description,created_at").eq("status","published").order("created_at",{ascending:false}).limit(3);
-    if (error) { console.error("[LatestNews]", error.message); return []; }
+    if (error) return [];
     return (data ?? []) as Article[];
-  } catch(e) { console.error("[LatestNews] failed:", e); return []; }
+  } catch { return []; }
 }
 
 function formatDateVN(iso:string) {
@@ -46,26 +46,36 @@ function ArticleCard({ article }: { article:Article }) {
     <Link href={`/tin-tuc/${article.slug}`} title={article.title}
       className="group relative flex flex-col rounded-2xl border border-slate-800 bg-slate-900/60 p-5 hover:border-amber-500/40 hover:bg-slate-800/80 transition-all duration-300 overflow-hidden">
       <div className="pointer-events-none absolute -top-10 -left-10 w-32 h-32 rounded-full bg-amber-500/0 group-hover:bg-amber-500/8 blur-2xl transition-all duration-500" />
+
+      {/* Badge AI */}
       <div className="flex items-center gap-1.5 mb-3">
         <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded-full uppercase tracking-wider">
           <svg className="w-2.5 h-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
           AI
         </span>
       </div>
+
+      {/* Tieu de */}
       <h3 className="font-bold text-white text-[15px] leading-snug mb-2 group-hover:text-amber-400 transition-colors duration-200 line-clamp-2">
         {article.title}
       </h3>
+
+      {/* Mo ta */}
       {article.meta_description && (
-        <p className="text-slate-400 text-[13px] leading-relaxed line-clamp-2 flex-1">{article.meta_description}</p>
+        <p className="text-slate-400 text-[13px] leading-relaxed line-clamp-2 flex-1">
+          {article.meta_description}
+        </p>
       )}
-      <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between">
-        <div className="flex items-center gap-1.5 text-slate-500 text-xs">
+
+      {/* Footer: ngay ben trai, "Doc them" ben phai — KHONG chong nhau */}
+      <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between gap-4">
+        <div className="flex items-center gap-1.5 text-slate-500 text-xs min-w-0">
           <svg className="w-3.5 h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
             <rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
           </svg>
-          <span>{formatDateVN(article.created_at)}</span>
+          <span className="truncate">{formatDateVN(article.created_at)}</span>
         </div>
-        <span className="flex items-center gap-1 text-xs text-amber-500/70 group-hover:text-amber-400 transition-colors">
+        <span className="shrink-0 flex items-center gap-1 text-xs text-amber-500/70 group-hover:text-amber-400 transition-colors whitespace-nowrap">
           Đọc thêm
           <svg className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
         </span>
@@ -93,11 +103,10 @@ export default async function LatestNews() {
           )}
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {isEmpty ? (
-            <><SkeletonCard /><SkeletonCard /><SkeletonCard /></>
-          ) : (
-            articles.map(a => <ArticleCard key={a.slug} article={a} />)
-          )}
+          {isEmpty
+            ? <><SkeletonCard /><SkeletonCard /><SkeletonCard /></>
+            : articles.map(a => <ArticleCard key={a.slug} article={a} />)
+          }
         </div>
         {isEmpty && <p className="text-center text-slate-600 text-xs mt-4">Bài viết sẽ tự động xuất hiện sau khi AI chạy lần đầu.</p>}
       </div>
