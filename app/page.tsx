@@ -1,3 +1,4 @@
+import LatestNews from "@/components/LatestNews";
 /**
  * app/page.tsx
  *
@@ -193,7 +194,9 @@ export default async function HomePage() {
           </div>
         )}
 
-      </main>
+            <LatestNews />
+          <LatestNews />
+    </main>
 
       {/* ── FOOTER ── */}
       <footer className="border-t border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 mt-12 py-6">
