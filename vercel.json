@@ -1,12 +1,16 @@
 {
   "crons": [
     {
-      "path": "/api/cron/write-article",
+      "path": "/api/cron/write-article?session=sang",
       "schedule": "0 0 * * *"
     },
     {
       "path": "/api/cron/update-prices",
       "schedule": "15 4 * * *"
+    },
+    {
+      "path": "/api/cron/write-article?session=trua",
+      "schedule": "30 4 * * *"
     }
   ]
 }

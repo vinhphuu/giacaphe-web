@@ -1,7 +1,7 @@
 /**
  * app/api/cron/write-article/route.ts
- * Chạy lúc 7:00 SA giờ Việt Nam (00:00 UTC)
- * Lấy giá mới nhất từ DB → Groq viết bài → lưu vào articles
+ * ?session=sang  → chạy 7:00 SA VN (00:00 UTC)
+ * ?session=trua  → chạy 11:30 SA VN (04:30 UTC)
  */
 import { NextRequest, NextResponse } from "next/server";
 import { generateMarketArticle, saveArticle } from "@/lib/ai-writer";
@@ -11,14 +11,15 @@ export const maxDuration = 60;
 export const dynamic = "force-dynamic";
 
 function getSupabaseAdmin() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth:{ persistSession:false, autoRefreshToken:false } }
+  );
 }
 
 async function fetchLatestPrices() {
-  const sb = getSupabaseAdmin();
-  const { data } = await sb
+  const { data } = await getSupabaseAdmin()
     .from("prices")
     .select("province, price, change_value, region")
     .eq("type", "coffee")
@@ -32,16 +33,15 @@ async function fetchLatestPrices() {
 }
 
 async function fetchHistory7Days() {
-  const sb = getSupabaseAdmin();
   const since = new Date();
   since.setDate(since.getDate() - 7);
-  const { data } = await sb
+  const { data } = await getSupabaseAdmin()
     .from("price_history")
     .select("price, recorded_at")
     .eq("province", "Đắk Lắk")
     .eq("type", "coffee")
     .gte("recorded_at", since.toISOString())
-    .order("recorded_at", { ascending: true });
+    .order("recorded_at", { ascending:true });
   if (!data || data.length === 0) return [];
   const days = ["CN","T2","T3","T4","T5","T6","T7"];
   return data.map((r: { price:number; recorded_at:string }) => ({
@@ -52,11 +52,16 @@ async function fetchHistory7Days() {
 
 export async function GET(request: NextRequest) {
   const start = Date.now();
-  const auth  = request.headers.get("authorization");
+
+  // Auth
+  const auth   = request.headers.get("authorization");
   const secret = process.env.CRON_SECRET;
   if (!secret || auth !== `Bearer ${secret}`) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error:"Unauthorized" }, { status:401 });
   }
+
+  // Lấy session từ query param: ?session=sang hoặc ?session=trua
+  const session = request.nextUrl.searchParams.get("session") ?? "sang";
 
   const [prices, history] = await Promise.all([
     fetchLatestPrices(),
@@ -64,31 +69,35 @@ export async function GET(request: NextRequest) {
   ]);
 
   if (prices.length === 0) {
-    return NextResponse.json({ success: false, error: "Không có dữ liệu giá trong DB" });
+    return NextResponse.json({ success:false, error:"Không có dữ liệu giá trong DB" }, { status:422 });
   }
 
-  const writeResult = await generateMarketArticle(prices, history);
+  const writeResult = await generateMarketArticle(prices, history, session);
 
   if (!writeResult.success || !writeResult.article) {
     return NextResponse.json({
-      success: false,
-      error: writeResult.error,
-      duration: `${Date.now() - start}ms`,
-    }, { status: 500 });
+      success:  false,
+      session,
+      error:    writeResult.error,
+      duration: `${Date.now()-start}ms`,
+      timestamp: new Date().toISOString(),
+    }, { status:500 });
   }
 
   const saveResult = await saveArticle(writeResult.article, prices);
 
   return NextResponse.json({
     success:  true,
+    session,
     article: {
       id:         saveResult.article_id,
       slug:       saveResult.slug,
       title:      writeResult.article.title,
       word_count: writeResult.article.word_count,
       url:        `https://giacaphe-web.vercel.app/tin-tuc/${saveResult.slug}`,
+      save_error: saveResult.error,
     },
-    duration: `${Date.now() - start}ms`,
+    duration:  `${Date.now()-start}ms`,
     timestamp: new Date().toISOString(),
   });
 }
