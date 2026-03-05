@@ -112,7 +112,7 @@ VIẾT BÀI 1500-2000 TỪ theo cấu trúc Markdown bắt buộc:
 **Khuyến nghị cho người trồng:** [lời khuyên cụ thể]
 
 ---
-*Theo dõi giacaphe.com để cập nhật giá cà phê mới nhất mỗi ngày. Dữ liệu được thu thập và phân tích tự động.*
+*Theo dõi caphehomnay.com để cập nhật giá cà phê mới nhất mỗi ngày. Dữ liệu được thu thập và phân tích tự động.*
 
 TIÊU CHUẨN CHẤT LƯỢNG:
 - Tổng bài 1500-2000 từ (đếm kỹ, không được ít hơn 1500)
