@@ -64,7 +64,7 @@ export default async function HomePage() {
   );
   const others      = allPrices.filter((p) => !taynguyen.includes(p));
 
-  const now         = new Date().toLocaleTimeString("vi-VN", {
+  const now         = new Date().toLocaleTimeString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh",
     hour:   "2-digit",
     minute: "2-digit",
   });
