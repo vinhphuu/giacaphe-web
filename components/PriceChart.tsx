@@ -1,216 +1,101 @@
-/**
- * components/PriceChart.tsx
- *
- * Biểu đồ đường 7 ngày — dùng Recharts (tương thích React 19).
- *
- * Cài đặt:
- *   npm install recharts
- *
- * Phải là Client Component vì Recharts dùng browser APIs (ResizeObserver, SVG).
- */
-
 "use client";
+import{useState,useEffect,useCallback}from"react";
+import{LineChart,Line,XAxis,YAxis,CartesianGrid,Tooltip,ResponsiveContainer}from"recharts";
 
-import { useState } from "react";
-import {
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  ReferenceLine,
-} from "recharts";
-import { TrendingUp, TrendingDown, BarChart2 } from "lucide-react";
-import type { ChartDataPoint } from "@/types";
+type Period=7|30;
+interface ChartPoint{date:string;price:number;}
 
-// ─────────────────────────────────────────────
-// CUSTOM TOOLTIP
-// ─────────────────────────────────────────────
-
-interface TooltipPayload {
-  value: number;
-}
-
-function CustomTooltip({
-  active,
-  payload,
-  label,
-}: {
-  active?: boolean;
-  payload?: TooltipPayload[];
-  label?: string;
-}) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 shadow-lg text-sm">
-      <p className="text-slate-500 dark:text-slate-400 text-xs mb-1">{label}</p>
-      <p className="font-bold text-slate-800 dark:text-slate-100">
-        {payload[0].value.toLocaleString("vi-VN")}
-        <span className="font-normal text-slate-500 ml-1">đ/kg</span>
-      </p>
+function CustomTooltip({active,payload,label}:{active?:boolean;payload?:{value:number}[];label?:string}){
+  if(!active||!payload?.length) return null;
+  return(
+    <div className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 shadow-xl">
+      <p className="text-slate-400 text-xs mb-1">{label}</p>
+      <p className="text-amber-400 font-bold text-sm">{payload[0].value.toLocaleString("vi-VN")}đ/kg</p>
     </div>
   );
 }
 
-// ─────────────────────────────────────────────
-// MAIN CHART COMPONENT
-// ─────────────────────────────────────────────
-
-interface PriceChartProps {
-  data:       ChartDataPoint[];
-  region:     string;
-  isLoading?: boolean;
-}
-
-export function PriceChart({ data, region, isLoading = false }: PriceChartProps) {
-  const [activeRegion, setActiveRegion] = useState(region);
-
-  if (isLoading) return <PriceChartSkeleton />;
-  if (!data || data.length === 0) return null;
-
-  const prices = data.map((d) => d.price);
-  const minPrice  = Math.min(...prices);
-  const maxPrice  = Math.max(...prices);
-  const lastPrice = prices[prices.length - 1];
-  const firstPrice = prices[0];
-  const totalChange = lastPrice - firstPrice;
-  const isUp = totalChange >= 0;
-
-  // Y-axis range với padding
-  const yMin = Math.floor((minPrice - 500) / 500) * 500;
-  const yMax = Math.ceil((maxPrice + 500) / 500) * 500;
-
-  return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-      {/* Header */}
-      <div className="px-4 pt-4 pb-2">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2 mb-0.5">
-              <BarChart2 className="w-4 h-4 text-slate-400" />
-              <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                Xu hướng 7 ngày
-              </span>
-            </div>
-            <h3 className="text-base font-bold text-slate-800 dark:text-slate-100">
-              {activeRegion}
-            </h3>
-          </div>
-
-          {/* Change badge */}
-          <div
-            className={`flex items-center gap-1 px-3 py-1.5 rounded-xl text-sm font-bold ${
-              isUp
-                ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-900/50 dark:text-emerald-300"
-                : "bg-red-50 text-red-600 dark:bg-red-900/50 dark:text-red-300"
-            }`}
-          >
-            {isUp ? (
-              <TrendingUp className="w-4 h-4" />
-            ) : (
-              <TrendingDown className="w-4 h-4" />
-            )}
-            {isUp ? "+" : ""}
-            {totalChange.toLocaleString("vi-VN")}đ
-          </div>
-        </div>
-
-        {/* Current price */}
-        <p
-          className={`text-3xl font-bold tabular-nums mt-2 ${
-            isUp
-              ? "text-emerald-600 dark:text-emerald-400"
-              : "text-red-600 dark:text-red-400"
-          }`}
-        >
-          {lastPrice.toLocaleString("vi-VN")}
-          <span className="text-base font-normal text-slate-400 ml-1">đ/kg</span>
-        </p>
-      </div>
-
-      {/* Chart */}
-      <div className="px-1 pb-4 h-52">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
-            <CartesianGrid
-              strokeDasharray="3 3"
-              stroke="currentColor"
-              className="text-slate-100 dark:text-slate-800"
-              vertical={false}
-            />
-            <XAxis
-              dataKey="date"
-              tick={{ fontSize: 11, fill: "currentColor" }}
-              className="text-slate-400 dark:text-slate-500"
-              axisLine={false}
-              tickLine={false}
-              dy={6}
-            />
-            <YAxis
-              domain={[yMin, yMax]}
-              tick={{ fontSize: 10, fill: "currentColor" }}
-              className="text-slate-400 dark:text-slate-500"
-              axisLine={false}
-              tickLine={false}
-              width={52}
-              tickFormatter={(v: number) => `${(v / 1000).toFixed(0)}k`}
-            />
-            <Tooltip content={<CustomTooltip />} cursor={{ stroke: "#d97706", strokeWidth: 1, strokeDasharray: "4 4" }} />
-            <ReferenceLine
-              y={firstPrice}
-              stroke="#94a3b8"
-              strokeDasharray="4 4"
-              strokeWidth={1}
-            />
-            <Line
-              type="monotone"
-              dataKey="price"
-              stroke={isUp ? "#10b981" : "#ef4444"}
-              strokeWidth={2.5}
-              dot={{ fill: isUp ? "#10b981" : "#ef4444", r: 3, strokeWidth: 0 }}
-              activeDot={{ r: 5, strokeWidth: 0 }}
-            />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-
-      {/* Min / Max row */}
-      <div className="grid grid-cols-2 gap-px border-t border-slate-100 dark:border-slate-700">
-        <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/40">
-          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Thấp nhất</p>
-          <p className="text-sm font-bold text-red-500 tabular-nums">
-            {minPrice.toLocaleString("vi-VN")}đ
-          </p>
-        </div>
-        <div className="px-4 py-3 bg-slate-50 dark:bg-slate-800/40">
-          <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Cao nhất</p>
-          <p className="text-sm font-bold text-emerald-600 tabular-nums">
-            {maxPrice.toLocaleString("vi-VN")}đ
-          </p>
-        </div>
-      </div>
+function ChartSkeleton(){
+  return(
+    <div className="w-full h-52 flex items-end gap-1 px-2 animate-pulse">
+      {Array.from({length:14}).map((_,i)=>(
+        <div key={i} className="flex-1 bg-slate-700/50 rounded-t" style={{height:`${30+Math.random()*60}%`}}/>
+      ))}
     </div>
   );
 }
 
-// ─────────────────────────────────────────────
-// SKELETON
-// ─────────────────────────────────────────────
+export default function PriceChart(){
+  const[period,setPeriod]=useState<Period>(7);
+  const[data,setData]=useState<ChartPoint[]>([]);
+  const[loading,setLoading]=useState(true);
+  const[province,setProvince]=useState("Đắk Lắk");
 
-export function PriceChartSkeleton() {
-  return (
-    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm p-4 animate-pulse">
-      <div className="space-y-2 mb-4">
-        <div className="h-3 w-24 bg-slate-200 dark:bg-slate-700 rounded" />
-        <div className="h-7 w-32 bg-slate-200 dark:bg-slate-700 rounded" />
-        <div className="h-9 w-40 bg-slate-200 dark:bg-slate-700 rounded" />
+  const fetchData=useCallback(async(days:Period,prov:string)=>{
+    setLoading(true);
+    try{
+      const res=await fetch(`/api/chart-data?province=${encodeURIComponent(prov)}&days=${days}`);
+      const json=await res.json();
+      setData(json.data??[]);
+    }catch{setData([]);}
+    finally{setLoading(false);}
+  },[]);
+
+  useEffect(()=>{fetchData(period,province);},[period,province,fetchData]);
+
+  const first=data[0]?.price??0;
+  const last=data[data.length-1]?.price??0;
+  const pct=first>0?(((last-first)/first)*100).toFixed(2):"0.00";
+  const isUp=parseFloat(pct)>=0;
+
+  return(
+    <div className="bg-slate-900/60 border border-slate-800 rounded-2xl overflow-hidden mx-4 mb-4">
+      <div className="flex items-center justify-between px-4 pt-4 pb-2 gap-3 flex-wrap">
+        <div>
+          <h3 className="text-sm font-bold text-white">Biểu đồ giá cà phê</h3>
+          {!loading&&data.length>0&&(
+            <p className={`text-xs mt-0.5 ${isUp?"text-emerald-400":"text-rose-400"}`}>
+              {isUp?"▲":"▼"} {Math.abs(parseFloat(pct))}% trong {period} ngày
+            </p>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <select value={province} onChange={e=>setProvince(e.target.value)}
+            className="text-xs bg-slate-800 border border-slate-700 text-slate-300 rounded-lg px-2 py-1.5 outline-none cursor-pointer hover:border-slate-600 transition-colors">
+            {["Đắk Lắk","Gia Lai","Lâm Đồng","Đắk Nông","Kon Tum"].map(p=>(
+              <option key={p} value={p}>{p}</option>
+            ))}
+          </select>
+          <div className="flex bg-slate-800 rounded-lg p-0.5 gap-0.5">
+            {([7,30] as Period[]).map(d=>(
+              <button key={d} onClick={()=>setPeriod(d)}
+                className={`text-xs px-3 py-1.5 rounded-md font-medium transition-all duration-150 ${period===d?"bg-amber-500 text-slate-900 shadow-sm":"text-slate-400 hover:text-slate-200"}`}>
+                {d} ngày
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
-      <div className="h-52 bg-slate-100 dark:bg-slate-800 rounded-xl" />
-      <div className="grid grid-cols-2 gap-2 mt-3">
-        <div className="h-10 bg-slate-100 dark:bg-slate-800 rounded-lg" />
-        <div className="h-10 bg-slate-100 dark:bg-slate-800 rounded-lg" />
+      <div className="px-2 pb-4 pt-1">
+        {loading?<ChartSkeleton />:data.length===0?(
+          <div className="h-52 flex items-center justify-center text-slate-600 text-sm">Chưa có dữ liệu lịch sử</div>
+        ):(
+          <ResponsiveContainer width="100%" height={200}>
+            <LineChart data={data} margin={{top:4,right:8,left:0,bottom:0}}>
+              <defs>
+                <linearGradient id="lineGrad" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor="#f59e0b" stopOpacity={0.6}/>
+                  <stop offset="100%" stopColor="#f59e0b" stopOpacity={1}/>
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false}/>
+              <XAxis dataKey="date" tick={{fill:"#64748b",fontSize:11}} tickLine={false} axisLine={false} interval={period===7?0:Math.floor(data.length/6)}/>
+              <YAxis tick={{fill:"#64748b",fontSize:11}} tickLine={false} axisLine={false} width={72} tickFormatter={v=>`${(v/1000).toFixed(0)}k`} domain={["auto","auto"]}/>
+              <Tooltip content={<CustomTooltip/>}/>
+              <Line type="monotone" dataKey="price" stroke="url(#lineGrad)" strokeWidth={2.5} dot={false} activeDot={{r:5,fill:"#f59e0b",stroke:"#0f172a",strokeWidth:2}}/>
+            </LineChart>
+          </ResponsiveContainer>
+        )}
       </div>
     </div>
   );
