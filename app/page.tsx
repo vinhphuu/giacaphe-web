@@ -54,7 +54,6 @@ export default async function HomePage() {
 
   const summary     = summaryResult.data;
   const allPrices   = pricesResult.data ?? [];
-  const chartData   = historyResult.data ?? [];
 
   // Phân nhóm tỉnh Tây Nguyên vs tỉnh khác
   const taynguyen   = allPrices.filter((p) =>
