@@ -17,7 +17,6 @@ import { Coffee, RefreshCw, Clock, Globe } from "lucide-react";
 import {
   fetchCoffeePrices,
   fetchPriceSummary,
-  fetchPriceHistory,
 } from "@/lib/actions";
 import {
   SummaryCard,
@@ -27,7 +26,7 @@ import {
   PriceTable,
   PriceTableSkeleton,
 } from "@/components/PriceTable";
-import { PriceChart, PriceChartSkeleton } from "@/components/PriceChart";
+import PriceChart from "@/components/PriceChart";
 import type { PriceCardData } from "@/types";
 
 // ─────────────────────────────────────────────
@@ -48,10 +47,9 @@ export async function generateMetadata() {
 
 export default async function HomePage() {
   // Chạy song song để giảm thời gian chờ
-  const [summaryResult, pricesResult, historyResult] = await Promise.all([
+  const [summaryResult, pricesResult] = await Promise.all([
     fetchPriceSummary(),
     fetchCoffeePrices(),
-    fetchPriceHistory("Đắk Lắk"),
   ]);
 
   const summary     = summaryResult.data;
@@ -154,10 +152,7 @@ export default async function HomePage() {
           <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
             Biểu đồ xu hướng 7 ngày
           </h2>
-          <PriceChart
-            data={chartData}
-            region="Đắk Lắk"
-          />
+          <PriceChart />
         </section>
 
         {/* ── PRICE TABLES ── */}
