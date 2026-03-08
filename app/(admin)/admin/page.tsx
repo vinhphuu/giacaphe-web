@@ -41,13 +41,13 @@ function getSupabase() {
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const map = {
+  const map: Record<string, string> = {
     success: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
     failed:  "bg-rose-500/15    text-rose-400    border-rose-500/30",
     running: "bg-amber-500/15   text-amber-400   border-amber-500/30",
   } as Record<string, string>;
-  const icons = { success: "✓", failed: "✗", running: "⟳" };
-  const labels = { success: "Thành công", failed: "Lỗi", running: "Đang chạy" };
+  const icons: Record<string, string> = { success: "✓", failed: "✗", running: "⟳" };
+  const labels: Record<string, string> = { success: "Thành công", failed: "Lỗi", running: "Đang chạy" };
 
   return (
     <span className={`inline-flex items-center gap-1 text-[11px] font-semibold
