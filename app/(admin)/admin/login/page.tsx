@@ -7,7 +7,7 @@
 
 import { useState }     from "react";
 import { useRouter }    from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
+import { createBrowserClient } from "@supabase/ssr";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -34,8 +34,8 @@ export default function AdminLoginPage() {
       return;
     }
 
-    router.push("/admin");
     router.refresh();
+    router.push("/admin");
   }
 
   return (
