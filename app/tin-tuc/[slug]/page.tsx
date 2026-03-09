@@ -1,7 +1,7 @@
-import { notFound }        from "next/navigation";
-import Link                from "next/link";
-import type { Metadata }   from "next";
-import { createClient }    from "@supabase/supabase-js";
+import { notFound } from "next/navigation";
+import Link from "next/link";
+import type { Metadata } from "next";
+import { createClient } from "@supabase/supabase-js";
 
 export const revalidate = 3600;
 
@@ -10,28 +10,40 @@ async function getArticle(slug: string) {
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key) return null;
   const sb = createClient(url, key, {
-    global: { fetch: (input, init) => fetch(input, { ...init, next: { revalidate: 3600 } } as RequestInit) },
+    global: {
+      fetch: (input, init) =>
+        fetch(input, { ...init, next: { revalidate: 3600 } } as RequestInit),
+    },
   });
-  const { data } = await sb.from("articles").select("*").eq("slug", slug).eq("status","published").single();
+  const { data } = await sb
+    .from("articles")
+    .select("*")
+    .eq("slug", slug)
+    .eq("status", "published")
+    .single();
   return data;
 }
 
-export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
   const { slug } = await params;
   const article = await getArticle(slug);
-  if (!article) return { title: "Bài viết không tìm thấy" };
+  if (!article) return { title: "Bai viet khong tim thay" };
   const base = process.env.NEXT_PUBLIC_BASE_URL ?? "https://giacaphe-web.vercel.app";
   return {
-    title:       article.title,
+    title: article.title,
     description: article.meta_description ?? "",
-    alternates:  { canonical: `${base}/tin-tuc/${slug}` },
+    alternates: { canonical: `${base}/tin-tuc/${slug}` },
     openGraph: {
-      title:    article.title,
+      title: article.title,
       description: article.meta_description ?? "",
-      url:      `${base}/tin-tuc/${slug}`,
-      type:     "article",
-      siteName: "GiaCaPhe",
-      locale:   "vi_VN",
+      url: `${base}/tin-tuc/${slug}`,
+      type: "article",
+      siteName: "CapheHomNay",
+      locale: "vi_VN",
     },
   };
 }
@@ -45,16 +57,19 @@ function MarkdownRenderer({ content }: { content: string }) {
   const flushTable = () => {
     if (tableBuffer.length < 2) { tableBuffer = []; return; }
     const rows = tableBuffer
-      .map(r => r.split("|").map(c => c.trim()).filter((_, i, a) => i > 0 && i < a.length - 1))
-      .filter(r => r.some(c => c && !c.match(/^[-:]+$/)));
+      .map((r) => r.split("|").map((c) => c.trim()).filter((_, i, a) => i > 0 && i < a.length - 1))
+      .filter((r) => r.some((c) => c && !c.match(/^[-:]+$/)));
     if (!rows.length) { tableBuffer = []; return; }
     elements.push(
       <div key={key++} className="overflow-x-auto my-5">
         <table className="w-full border-collapse text-sm">
-          <thead><tr>{rows[0].map((c,i) => <th key={i} className="px-3 py-2 text-left bg-slate-800 text-slate-300 font-semibold border border-slate-700">{c}</th>)}</tr></thead>
-          <tbody>{rows.slice(1).map((row,ri) => (
+          <thead><tr>{rows[0].map((c, i) => <th key={i} className="px-3 py-2 text-left bg-slate-800 text-slate-300 font-semibold border border-slate-700">{c}</th>)}</tr></thead>
+          <tbody>{rows.slice(1).map((row, ri) => (
             <tr key={ri} className="border-t border-slate-800 hover:bg-slate-800/40">
-              {row.map((c,ci) => <td key={ci} className="px-3 py-2 border border-slate-800/60 text-slate-300" dangerouslySetInnerHTML={{ __html: c.replace(/\*\*(.+?)\*\*/g,"<strong>$1</strong>").replace(/!\[([^\]]*)\]\(([^)]+)\)/g,'<img src="$2" alt="$1" class="rounded-lg my-3 w-full" />') }}/>)}
+              {row.map((c, ci) => (
+                <td key={ci} className="px-3 py-2 border border-slate-800/60 text-slate-300"
+                  dangerouslySetInnerHTML={{ __html: c.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>") }} />
+              ))}
             </tr>
           ))}</tbody>
         </table>
@@ -82,85 +97,82 @@ function MarkdownRenderer({ content }: { content: string }) {
         .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
         .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" class="rounded-lg my-3 w-full" />')
         .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-amber-400 hover:underline">$1</a>');
-      elements.push(<p key={key++} className="text-slate-300 leading-relaxed my-3" dangerouslySetInnerHTML={{ __html: html }}/>);
+      elements.push(<p key={key++} className="text-slate-300 leading-relaxed my-3" dangerouslySetInnerHTML={{ __html: html }} />);
     }
   }
   if (tableBuffer.length) flushTable();
   return <>{elements}</>;
 }
 
-export default async function ArticlePage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function ArticlePage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
   const { slug } = await params;
   const article = await getArticle(slug);
   if (!article) notFound();
 
   const base = process.env.NEXT_PUBLIC_BASE_URL ?? "https://giacaphe-web.vercel.app";
   const dateDisplay = new Date(article.created_at).toLocaleDateString("vi-VN", {
-    weekday:"long", day:"2-digit", month:"2-digit", year:"numeric", timeZone:"Asia/Ho_Chi_Minh",
+    weekday: "long",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    timeZone: "Asia/Ho_Chi_Minh",
   });
 
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type":    "NewsArticle",
-    "headline": article.title,
-    "description": article.meta_description ?? "",
-    "datePublished": article.created_at,
-    "dateModified":  article.updated_at ?? article.created_at,
-    "url":      `${base}/tin-tuc/${slug}`,
-    "author":   { "@type": "Organization", "name": "GiaCaPhe", "url": base },
-    "publisher":{ "@type": "Organization", "name": "GiaCaPhe", "url": base },
-    "inLanguage": "vi",
-    "mainEntityOfPage": { "@type": "WebPage", "@id": `${base}/tin-tuc/${slug}` },
+    "@type": "NewsArticle",
+    headline: article.title,
+    description: article.meta_description ?? "",
+    datePublished: article.created_at,
+    dateModified: article.updated_at ?? article.created_at,
+    url: `${base}/tin-tuc/${slug}`,
+    author: { "@type": "Organization", name: "CapheHomNay", url: base },
+    publisher: { "@type": "Organization", name: "CapheHomNay", url: base },
+    inLanguage: "vi",
+    mainEntityOfPage: { "@type": "WebPage", "@id": `${base}/tin-tuc/${slug}` },
   };
 
   return (
     <>
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}/>
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <main className="min-h-screen bg-slate-950 text-white">
         <div className="max-w-3xl mx-auto px-4 py-8">
-          {/* Breadcrumb */}
           <nav className="flex items-center gap-2 text-xs text-slate-500 mb-6">
-            <Link href="/" className="hover:text-amber-400 transition-colors">Trang chủ</Link>
+            <Link href="/" className="hover:text-amber-400 transition-colors">Trang chu</Link>
             <span>/</span>
-            <Link href="/tin-tuc" className="hover:text-amber-400 transition-colors">Tin tức</Link>
+            <Link href="/tin-tuc" className="hover:text-amber-400 transition-colors">Tin tuc</Link>
             <span>/</span>
             <span className="text-slate-400 truncate max-w-xs">{article.title}</span>
           </nav>
-
-          {/* Meta */}
           <div className="flex items-center gap-3 mb-6">
             <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-400/10 px-2.5 py-1 rounded-full uppercase tracking-wider">
-              🤖 AI Generated
+              AI Generated
             </span>
             <span className="text-slate-500 text-xs">{dateDisplay}</span>
             {article.word_count && (
-              <span className="text-slate-500 text-xs">· {Math.ceil(article.word_count / 200)} phút đọc</span>
+              <span className="text-slate-500 text-xs">· {Math.ceil(article.word_count / 200)} phut doc</span>
             )}
           </div>
-
-          {/* Nội dung bài viết */}
           <article className="mb-12">
             <MarkdownRenderer content={article.content} />
           </article>
-
-          {/* Keywords */}
           {article.keywords?.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-8 pt-6 border-t border-slate-800">
               {article.keywords.map((k: string) => (
-                <span key={k} className="text-xs px-3 py-1 rounded-full bg-slate-800 text-slate-400">
-                  #{k}
-                </span>
+                <span key={k} className="text-xs px-3 py-1 rounded-full bg-slate-800 text-slate-400">#{k}</span>
               ))}
             </div>
           )}
-
-          {/* Back */}
           <div className="flex items-center gap-4 pt-4 border-t border-slate-800">
             <Link href="/tin-tuc" className="flex items-center gap-2 text-sm text-amber-400 hover:text-amber-300 transition-colors">
-              ← Tất cả bài viết
+              ← Tat ca bai viet
             </Link>
             <Link href="/" className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-300 transition-colors">
-              Trang chủ
+              Trang chu
             </Link>
           </div>
         </div>
