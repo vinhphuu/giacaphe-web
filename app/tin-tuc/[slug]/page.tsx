@@ -3,7 +3,8 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { createClient } from "@supabase/supabase-js";
 
-export const revalidate = 3600;
+export const revalidate = 0;
+export const dynamic = "force-dynamic";
 
 async function getArticle(slug: string) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
