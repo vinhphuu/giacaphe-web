@@ -20,7 +20,6 @@ async function getArticle(slug: string) {
     .from("articles")
     .select("*")
     .eq("slug", slug)
-    .eq("status", "published")
     .single();
   return data;
 }
