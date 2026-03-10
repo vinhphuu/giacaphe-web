@@ -6,7 +6,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient }        from "@supabase/ssr";
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Chỉ bảo vệ các route /admin (trừ /admin/login)
