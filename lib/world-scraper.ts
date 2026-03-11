@@ -121,7 +121,7 @@ function parseWorldPrices(html: string): WorldPrice[] {
     if (contextText.includes("london") || contextText.includes("robusta") || contextText.includes("liffe")) {
       exchange = "London";
       unit = "USD/Tấn";
-    } else if (contextText.includes("new york") || contextText.includes("arabica") || contextText.includes("ice") || contextText.includes("nybot")) {
+    } else if (contextText.includes("new york") || (contextText.includes("arabica") && !contextText.includes("robusta")) || contextText.includes("nybot")) {
       exchange = "New York";
       unit = "Cent/lb";
     }
@@ -133,8 +133,8 @@ function parseWorldPrices(html: string): WorldPrice[] {
       $(table).parents().addBack().each((_i: number, el: any) => {
         ancestorText += " " + ($(el).attr("id") ?? "") + " " + ($(el).attr("class") ?? "");
       });
-      if (/london|robusta|liffe/i.test(ancestorText)) { exchange = "London"; unit = "USD/Tấn"; }
-      else if (/york|arabica|ice|nybot/i.test(ancestorText)) { exchange = "New York"; unit = "Cent/lb"; }
+      if (/robusta-ice|robusta_ld|robusta|liffe/i.test(ancestorText)) { exchange = "London"; unit = "USD/Tấn"; }
+      else if (/arabica-ice|arabica_ny|arabica_b3|new.?york|arabica|nybot/i.test(ancestorText)) { exchange = "New York"; unit = "Cent/lb"; }
     }
 
     if (!exchange) return; // Bỏ qua bảng không xác định được
