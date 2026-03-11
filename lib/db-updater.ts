@@ -46,13 +46,13 @@ export async function upsertCoffeePrices(scraped: ScrapedPrice[]): Promise<Upser
 
   if (error) return { success: false, upserted: 0, skipped: scraped.length, errors: [error.message] };
 
-  // Ghi history — dùng đúng cột "region" thay vì "province"
+  // Ghi history — lưu CẢ province lẫn region để chart query được
   const changed = scraped.filter(p => existingMap.get(p.province) !== p.price);
   if (changed.length > 0) {
     await sb.from("price_history").insert(
       changed.map(p => ({
-        region:      REGION_MAP[p.province] ?? p.province,
         province:    p.province,
+        region:      REGION_MAP[p.province] ?? p.province,
         type:        "coffee",
         price:       p.price,
         recorded_at: syncedAt,

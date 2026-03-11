@@ -38,7 +38,7 @@ async function fetchHistory7Days() {
   const { data } = await getSupabaseAdmin()
     .from("price_history")
     .select("price, recorded_at")
-    .eq("region", "Tây Nguyên")
+    .eq("province", "Đắk Lắk")
     .eq("type", "coffee")
     .gte("recorded_at", since.toISOString())
     .order("recorded_at", { ascending:true });
