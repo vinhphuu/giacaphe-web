@@ -19,7 +19,7 @@ const TARGET_URL    = "https://giacaphe.com/gia-ca-phe-noi-dia/";
 const FETCH_TIMEOUT = 30_000;
 
 const COFFEE_PROVINCES = new Set([
-  "Đắk Lắk", "Gia Lai", "Lâm Đồng", "Đắk Nông", "Kon Tum", "Bình Phước", "Đồng Nai",
+  "Đắk Lắk", "Gia Lai", "Lâm Đồng", "Đắk Nông",
 ]);
 
 function parsePrice(raw: string): number {

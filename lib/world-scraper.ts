@@ -128,9 +128,18 @@ function parseWorldPrices(html: string): WorldPrice[] {
 
     // Nếu không nhận ra từ context, thử dựa vào ID/class của table/wrapper
     if (!exchange) {
-      const wrapper = $(table).closest("[id],[class]").attr("id") ?? $(table).closest("[id],[class]").attr("class") ?? "";
-      if (/london|robusta|liffe/i.test(wrapper)) { exchange = "London"; unit = "USD/Tấn"; }
-      else if (/york|arabica|ice|nybot/i.test(wrapper)) { exchange = "New York"; unit = "Cent/lb"; }
+      // Kiểm tra tất cả ancestor IDs (giacaphe.com dùng id="robusta-london" ở grandparent)
+      let ancestorIds = "";
+      let el = $(table).parent();
+      for (let depth = 0; depth < 5; depth++) {
+        const id = el.attr("id") ?? "";
+        const cls = el.attr("class") ?? "";
+        ancestorIds += " " + id + " " + cls;
+        if (!el.parent().length) break;
+        el = el.parent();
+      }
+      if (/london|robusta|liffe/i.test(ancestorIds)) { exchange = "London"; unit = "USD/Tấn"; }
+      else if (/york|arabica|ice|nybot/i.test(ancestorIds)) { exchange = "New York"; unit = "Cent/lb"; }
     }
 
     if (!exchange) return; // Bỏ qua bảng không xác định được
