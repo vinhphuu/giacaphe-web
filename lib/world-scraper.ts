@@ -39,7 +39,7 @@ export interface WorldScrapeResult {
 // ─────────────────────────────────────────────
 
 const TARGET_URL    = "https://giacaphe.com/gia-ca-phe-noi-dia/";
-const FETCH_TIMEOUT = 55_000;
+const FETCH_TIMEOUT = 50_000;
 
 // ─────────────────────────────────────────────
 // CSS CONTENT MAP (kỹ thuật đã dùng cho nội địa)

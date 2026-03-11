@@ -1,6 +1,7 @@
+export const maxDuration = 60;
+export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { scrapeWorldPrices, upsertWorldPrices } from "@/lib/world-scraper";
-export const dynamic = "force-dynamic";
 export async function GET() {
   const result = await scrapeWorldPrices();
   if (!result.success) return NextResponse.json({ scrape_error: result.error });
