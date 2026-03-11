@@ -38,8 +38,8 @@ export interface WorldScrapeResult {
 // CONSTANTS
 // ─────────────────────────────────────────────
 
-const TARGET_URL    = "https://giacaphe.com/gia-ca-phe-truc-tuyen/";
-const FETCH_TIMEOUT = 35_000;
+const TARGET_URL    = "https://giacaphe.com/gia-ca-phe-noi-dia/";
+const FETCH_TIMEOUT = 55_000;
 
 // ─────────────────────────────────────────────
 // CSS CONTENT MAP (kỹ thuật đã dùng cho nội địa)
@@ -133,8 +133,8 @@ function parseWorldPrices(html: string): WorldPrice[] {
       $(table).parents().addBack().each((_i: number, el: any) => {
         ancestorText += " " + ($(el).attr("id") ?? "") + " " + ($(el).attr("class") ?? "");
       });
-      if (/robusta-ice|robusta_ld|robusta|liffe/i.test(ancestorText)) { exchange = "London"; unit = "USD/Tấn"; }
-      else if (/arabica-ice|arabica_ny|arabica_b3|new.?york|arabica|nybot/i.test(ancestorText)) { exchange = "New York"; unit = "Cent/lb"; }
+      if (/robusta-london|robusta_ld|robusta|liffe/i.test(ancestorText)) { exchange = "London"; unit = "USD/Tấn"; }
+      else if (/arabica-newyork|arabica_ny|arabica_b3|new.?york|arabica|nybot/i.test(ancestorText)) { exchange = "New York"; unit = "Cent/lb"; }
     }
 
     if (!exchange) return; // Bỏ qua bảng không xác định được
