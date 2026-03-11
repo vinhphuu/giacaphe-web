@@ -31,13 +31,16 @@ export async function upsertCoffeePrices(scraped: ScrapedPrice[]): Promise<Upser
   const syncedAt = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Ho_Chi_Minh" })
     .replace(" ", "T") + "+07:00";
 
+  // Chỉ ghi các cột thực sự tồn tại trong DB
+  // Bỏ source_url (không có trong bảng)
+  // Ghi cả change lẫn change_value cho đồng bộ
   const rows = scraped.map(p => ({
     province:     p.province,
     region:       REGION_MAP[p.province] ?? "Khác",
     type:         "coffee",
     price:        p.price,
+    change:       p.change_value,
     change_value: p.change_value,
-    source_url:   p.source_url,
     ...(hasAnyChange ? { updated_at: syncedAt } : {}),
   }));
 
@@ -46,7 +49,7 @@ export async function upsertCoffeePrices(scraped: ScrapedPrice[]): Promise<Upser
 
   if (error) return { success: false, upserted: 0, skipped: scraped.length, errors: [error.message] };
 
-  // Ghi history — lưu CẢ province lẫn region để chart query được
+  // Ghi history — lưu cả province lẫn region
   const changed = scraped.filter(p => existingMap.get(p.province) !== p.price);
   if (changed.length > 0) {
     await sb.from("price_history").insert(
