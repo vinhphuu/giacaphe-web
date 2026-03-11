@@ -128,18 +128,12 @@ function parseWorldPrices(html: string): WorldPrice[] {
 
     // Nếu không nhận ra từ context, thử dựa vào ID/class của table/wrapper
     if (!exchange) {
-      // Kiểm tra tất cả ancestor IDs (giacaphe.com dùng id="robusta-london" ở grandparent)
-      let ancestorIds = "";
-      let el = $(table).parent();
-      for (let depth = 0; depth < 5; depth++) {
-        const id = el.attr("id") ?? "";
-        const cls = el.attr("class") ?? "";
-        ancestorIds += " " + id + " " + cls;
-        if (!el.parent().length) break;
-        el = el.parent();
-      }
-      if (/london|robusta|liffe/i.test(ancestorIds)) { exchange = "London"; unit = "USD/Tấn"; }
-      else if (/york|arabica|ice|nybot/i.test(ancestorIds)) { exchange = "New York"; unit = "Cent/lb"; }
+      // Kiểm tra tất cả ancestor IDs - giacaphe.com dùng id="robusta-london" ở grandparent
+      const ancestorHtml = $.html($(table).parents().addBack().toArray()
+        .map((el: Element) => `${$(el).attr("id") ?? ""} ${$(el).attr("class") ?? ""}`)
+        .join(" "));
+      if (/london|robusta|liffe/i.test(ancestorHtml)) { exchange = "London"; unit = "USD/Tấn"; }
+      else if (/york|arabica|ice|nybot/i.test(ancestorHtml)) { exchange = "New York"; unit = "Cent/lb"; }
     }
 
     if (!exchange) return; // Bỏ qua bảng không xác định được
@@ -243,7 +237,16 @@ export async function upsertWorldPrices(prices: WorldPrice[]): Promise<{
   const updatedAt = new Date().toLocaleString("sv-SE", { timeZone: "Asia/Ho_Chi_Minh" })
     .replace(" ", "T") + "+07:00";
 
-  const rows = prices.map((p) => ({
+  // Deduplicate theo exchange+contract (tránh ON CONFLICT error)
+  const seen = new Set<string>();
+  const uniquePrices = prices.filter(p => {
+    const key = `${p.exchange}:${p.contract}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
+  const rows = uniquePrices.map((p) => ({
     exchange:   p.exchange,
     contract:   p.contract,
     price:      p.price,
@@ -262,5 +265,5 @@ export async function upsertWorldPrices(prices: WorldPrice[]): Promise<{
     .select("id");
 
   if (error) return { success: false, upserted: 0, error: error.message };
-  return { success: true, upserted: upserted_data?.length ?? rows.length, error: null };
+  return { success: true, upserted: upserted_data?.length ?? uniquePrices.length, error: null };
 }
