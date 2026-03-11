@@ -130,7 +130,7 @@ function parseWorldPrices(html: string): WorldPrice[] {
     if (!exchange) {
       // Kiểm tra tất cả ancestor IDs - giacaphe.com dùng id="robusta-london" ở grandparent
       let ancestorText = "";
-      $(table).parents().addBack().each((_i: number, el: cheerio.AnyNode) => {
+      $(table).parents().addBack().each((_i: number, el: any) => {
         ancestorText += " " + ($(el).attr("id") ?? "") + " " + ($(el).attr("class") ?? "");
       });
       if (/london|robusta|liffe/i.test(ancestorText)) { exchange = "London"; unit = "USD/Tấn"; }
