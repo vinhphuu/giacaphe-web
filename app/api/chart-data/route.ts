@@ -3,14 +3,13 @@ import { createClient } from "@supabase/supabase-js";
 
 export const dynamic = "force-dynamic";
 
-// Map tỉnh → vùng (fallback nếu chưa có cột province)
 const PROVINCE_TO_REGION: Record<string, string> = {
-  "Đắk Lắk":  "Tây Nguyên",
-  "Gia Lai":   "Tây Nguyên",
+  "Đắk Lắk":   "Tây Nguyên",
+  "Gia Lai":    "Tây Nguyên",
   "Lâm Đồng":  "Tây Nguyên",
   "Đắk Nông":  "Tây Nguyên",
   "Kon Tum":   "Tây Nguyên",
-  "Bình Phước":"Đông Nam Bộ",
+  "Bình Phước": "Đông Nam Bộ",
   "Đồng Nai":  "Đông Nam Bộ",
 };
 
@@ -24,19 +23,22 @@ export async function GET(request: NextRequest) {
   if (!url || !key) return NextResponse.json({ data: [] });
 
   const sb = createClient(url, key);
-  const since = new Date();
-  since.setDate(since.getDate() - days);
 
-  // Thử query theo province trước
+  // Mở rộng window tìm kiếm: lấy 60 ngày để đủ data hiển thị
+  const since = new Date();
+  since.setDate(since.getDate() - 60);
+
+  // Query theo province trước
   let { data, error } = await sb
     .from("price_history")
     .select("price, recorded_at")
     .eq("province", province)
     .eq("type", "coffee")
     .gte("recorded_at", since.toISOString())
-    .order("recorded_at", { ascending: true });
+    .order("recorded_at", { ascending: true })
+    .limit(days === 7 ? 7 : 30);
 
-  // Nếu không có data, fallback query theo region
+  // Fallback: query theo region nếu không có data
   if (!error && (!data || data.length === 0)) {
     const region = PROVINCE_TO_REGION[province] ?? province;
     const fallback = await sb
@@ -45,7 +47,8 @@ export async function GET(request: NextRequest) {
       .eq("region", region)
       .eq("type", "coffee")
       .gte("recorded_at", since.toISOString())
-      .order("recorded_at", { ascending: true });
+      .order("recorded_at", { ascending: true })
+      .limit(days === 7 ? 7 : 30);
     data  = fallback.data;
     error = fallback.error;
   }
