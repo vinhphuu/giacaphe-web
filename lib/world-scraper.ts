@@ -191,7 +191,7 @@ export async function scrapeWorldPrices(): Promise<WorldScrapeResult> {
     `http://api.scraperapi.com` +
     `?api_key=${apiKey}` +
     `&url=${encodeURIComponent(TARGET_URL)}` +
-    `&render=false`;
+    `&render=true`;
 
   let html: string;
   try {
