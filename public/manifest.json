@@ -1,0 +1,13 @@
+{
+  "name": "Giá Cà Phê Hôm Nay",
+  "short_name": "GiaCaPhe",
+  "description": "Theo dõi giá cà phê nhân xô cập nhật hàng ngày từ Tây Nguyên",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#d97706",
+  "icons": [
+    { "src": "/favicon.ico", "sizes": "256x256", "type": "image/x-icon" },
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+  ]
+}
