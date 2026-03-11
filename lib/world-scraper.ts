@@ -166,8 +166,12 @@ function parseWorldPrices(html: string): WorldPrice[] {
       const { pt: change_pt, pct: change_pct } = parseChange(changeRaw);
 
       // Cột 3,4: Cao/Thấp (optional)
-      const high = cells.length > 3 ? parseNum(getCellText(3)) : 0;
-      const low  = cells.length > 4 ? parseNum(getCellText(4)) : 0;
+      // High/low: validate range hợp lý để tránh parse CSS sai
+      const rawHigh = cells.length > 3 ? parseNum(getCellText(3)) : 0;
+      const rawLow  = cells.length > 4 ? parseNum(getCellText(4)) : 0;
+      const priceRange = exchange === "London" ? [500, 20000] : [50, 5000];
+      const high = rawHigh > priceRange[0] && rawHigh < priceRange[1] ? rawHigh : 0;
+      const low  = rawLow  > priceRange[0] && rawLow  < priceRange[1] ? rawLow  : 0;
 
       // Cột 5: Volume (optional)
       const volume = cells.length > 5 ? getCellText(5) : "";
