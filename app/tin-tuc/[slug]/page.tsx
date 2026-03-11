@@ -6,22 +6,25 @@ import { createClient } from "@supabase/supabase-js";
 export const revalidate = 0;
 export const dynamic = "force-dynamic";
 
-async function getArticle(slug: string) {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) return null;
-  const sb = createClient(url, key, {
-    global: {
-      fetch: (input, init) =>
-        fetch(input, { ...init, next: { revalidate: 3600 } } as RequestInit),
-    },
+// Dùng service role key để bypass RLS
+function getSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+    ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+  return createClient(url, key, {
+    auth: { persistSession: false, autoRefreshToken: false },
   });
-  const { data } = await sb
+}
+
+async function getArticle(slug: string) {
+  const { data, error } = await getSupabase()
     .from("articles")
     .select("*")
     .eq("slug", slug)
+    .eq("status", "published")
     .single();
-  return data;
+  if (error) console.error("[getArticle]", error.message);
+  return data ?? null;
 }
 
 export async function generateMetadata({
@@ -31,7 +34,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const article = await getArticle(slug);
-  if (!article) return { title: "Bai viet khong tim thay" };
+  if (!article) return { title: "Bài viết không tìm thấy" };
   const base = process.env.NEXT_PUBLIC_BASE_URL ?? "https://giacaphe-web.vercel.app";
   return {
     title: article.title,
@@ -42,7 +45,7 @@ export async function generateMetadata({
       description: article.meta_description ?? "",
       url: `${base}/tin-tuc/${slug}`,
       type: "article",
-      siteName: "CapheHomNay",
+      siteName: "GiaCaPhe.vn",
       locale: "vi_VN",
     },
   };
@@ -87,15 +90,11 @@ function MarkdownRenderer({ content }: { content: string }) {
       elements.push(<h2 key={key++} className="text-lg font-bold text-amber-400 mt-8 mb-3">{line.slice(3)}</h2>);
     else if (line.startsWith("### "))
       elements.push(<h3 key={key++} className="text-base font-bold text-slate-200 mt-5 mb-2">{line.slice(4)}</h3>);
-    else if (line.match(/^!\[([^\]]*)\]\(([^)]+)\)/)) {
-      const m = line.match(/^!\[([^\]]*)\]\(([^)]+)\)/);
-      if (m) elements.push(<img key={key++} src={m[2]} alt={m[1]} className="rounded-xl my-5 w-full object-cover max-h-80" />);
-    } else if (line.trim() === "" || line.trim() === "---") {
+    else if (line.trim() === "" || line.trim() === "---") {
       elements.push(<div key={key++} className="my-3" />);
     } else if (line.trim()) {
       const html = line
         .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-        .replace(/!\[([^\]]*)\]\(([^)]+)\)/g, '<img src="$2" alt="$1" class="rounded-lg my-3 w-full" />')
         .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" class="text-amber-400 hover:underline">$1</a>');
       elements.push(<p key={key++} className="text-slate-300 leading-relaxed my-3" dangerouslySetInnerHTML={{ __html: html }} />);
     }
@@ -115,10 +114,7 @@ export default async function ArticlePage({
 
   const base = process.env.NEXT_PUBLIC_BASE_URL ?? "https://giacaphe-web.vercel.app";
   const dateDisplay = new Date(article.created_at).toLocaleDateString("vi-VN", {
-    weekday: "long",
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
+    weekday: "long", day: "2-digit", month: "2-digit", year: "numeric",
     timeZone: "Asia/Ho_Chi_Minh",
   });
 
@@ -130,10 +126,9 @@ export default async function ArticlePage({
     datePublished: article.created_at,
     dateModified: article.updated_at ?? article.created_at,
     url: `${base}/tin-tuc/${slug}`,
-    author: { "@type": "Organization", name: "CapheHomNay", url: base },
-    publisher: { "@type": "Organization", name: "CapheHomNay", url: base },
+    author: { "@type": "Organization", name: "GiaCaPhe.vn", url: base },
+    publisher: { "@type": "Organization", name: "GiaCaPhe.vn", url: base },
     inLanguage: "vi",
-    mainEntityOfPage: { "@type": "WebPage", "@id": `${base}/tin-tuc/${slug}` },
   };
 
   return (
@@ -142,19 +137,19 @@ export default async function ArticlePage({
       <main className="min-h-screen bg-slate-950 text-white">
         <div className="max-w-3xl mx-auto px-4 py-8">
           <nav className="flex items-center gap-2 text-xs text-slate-500 mb-6">
-            <Link href="/" className="hover:text-amber-400 transition-colors">Trang chu</Link>
+            <Link href="/" className="hover:text-amber-400 transition-colors">Trang chủ</Link>
             <span>/</span>
-            <Link href="/tin-tuc" className="hover:text-amber-400 transition-colors">Tin tuc</Link>
+            <Link href="/tin-tuc" className="hover:text-amber-400 transition-colors">Tin tức</Link>
             <span>/</span>
             <span className="text-slate-400 truncate max-w-xs">{article.title}</span>
           </nav>
-          <div className="flex items-center gap-3 mb-6">
+          <div className="flex items-center gap-3 mb-6 flex-wrap">
             <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-400 bg-emerald-400/10 px-2.5 py-1 rounded-full uppercase tracking-wider">
               AI Generated
             </span>
             <span className="text-slate-500 text-xs">{dateDisplay}</span>
             {article.word_count && (
-              <span className="text-slate-500 text-xs">· {Math.ceil(article.word_count / 200)} phut doc</span>
+              <span className="text-slate-500 text-xs">· {Math.ceil(article.word_count / 200)} phút đọc</span>
             )}
           </div>
           <article className="mb-12">
@@ -168,11 +163,11 @@ export default async function ArticlePage({
             </div>
           )}
           <div className="flex items-center gap-4 pt-4 border-t border-slate-800">
-            <Link href="/tin-tuc" className="flex items-center gap-2 text-sm text-amber-400 hover:text-amber-300 transition-colors">
-              ← Tat ca bai viet
+            <Link href="/tin-tuc" className="text-sm text-amber-400 hover:text-amber-300 transition-colors">
+              ← Tất cả bài viết
             </Link>
-            <Link href="/" className="flex items-center gap-2 text-sm text-slate-400 hover:text-slate-300 transition-colors">
-              Trang chu
+            <Link href="/" className="text-sm text-slate-400 hover:text-slate-300 transition-colors">
+              Trang chủ
             </Link>
           </div>
         </div>
