@@ -256,11 +256,11 @@ export async function upsertWorldPrices(prices: WorldPrice[]): Promise<{
     updated_at: updatedAt,
   }));
 
-  const { error, count } = await sb
+  const { data: upserted_data, error } = await sb
     .from("world_coffee_prices")
     .upsert(rows, { onConflict: "exchange,contract" })
     .select("id");
 
   if (error) return { success: false, upserted: 0, error: error.message };
-  return { success: true, upserted: count ?? rows.length, error: null };
+  return { success: true, upserted: upserted_data?.length ?? rows.length, error: null };
 }
